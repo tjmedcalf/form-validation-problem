@@ -12,14 +12,50 @@ class App extends Component {
 class FormComponent extends Component {
 	constructor(props) {
 		super(props);
-		this.state = {isFormValid: false, animals: []};
+		this.state = {isFormValid: false, formData: {}};
 		
 		this.handleSubmit = this.handleSubmit.bind(this);
+		this.bindTo = this.bindTo.bind(this);
 	}
 
 	handleSubmit(e) {
 		e.preventDefault();
-		console.log("valid: ", this )
+		let formData = this.state.formData;
+		
+		//Validate all fields.
+		if(Object.keys(formData).length > 0) {
+			let test = true;
+			
+			Object.keys(formData).map(field => {
+				if(!field.isValid) {
+					test = false;
+				}
+			});
+
+			this.setState({isFormValid: test});
+		} else {
+			this.setState({isFormValid: false});
+		}
+
+		console.log("formValid?", this.state.isFormValid);
+
+		if(this.state.isFormValid) {
+			//Submit form..
+		} else {
+			//Show errors..
+		}
+	}
+
+	//Method to bind data from children Components
+	bindTo(fieldId, value, isValid) {
+		let formData = this.state.formData;
+
+		formData[fieldId] = {
+			value: value,
+			valid: isValid,
+		}
+
+		this.setState({formData});
 	}
 
 	render() {
@@ -53,24 +89,30 @@ class FormComponent extends Component {
 				<fieldset>
 					<legend>Your details</legend>
 
-					<TextInput rule={rules.email} label="Email" id="email" type="email" placeholder="john.doe@example.com" />
+					<TextInput handleData={this.bindTo} 
+							   rule={rules.email} 
+							   label="Email" id="email" type="email" placeholder="john.doe@example.com" />
+							   
 					<TextInput rule={rules.password} label="Password" id="password" type="password" placeholder="Minmum 8 characters" />
 				</fieldset>
 
 				<fieldset>
 					<legend>Your animal</legend>
 
-					<SelectField defaultValue="Please select a colour" 
+					<SelectField binding={this.state.formData.password} defaultValue="Please select a colour" 
 								 label="Colour" 
 								 options={options.colours}
 								 required={true} />
 
 					<CheckboxGroup label="Animals" 
-								   binding={this.state.animals}
+								   binding={this.state.formData.animals}
 								   options={options.animals}
 								   rule={rules.animals} />
 
-					<TextInput rule={rules.typeOfTiger} condition={ (this.state.animals.indexOf("Tiger") > -1 ) } label="Type of tiger" id="tiger_type" />
+					<TextInput label="Type of tiger" 
+							   id="tiger_type" 
+							   binding={this.state.formData.typeOfTiger}
+							   rule={rules.typeOfTiger} />
 				</fieldset>
 
 				<input type='submit' value='Create account' />
@@ -80,10 +122,21 @@ class FormComponent extends Component {
 }
 
 class TextInput extends Component {
-	constructor(props) {
-		super(props);
+	constructor() {
+		super();
 		this.state = {isValid: ""}
 		this.checkRules = this.checkRules.bind(this);
+	}
+
+	//Method to pass data from Child to Parent
+	bindData = value => {
+		const {handleData} = this.props;
+		const {id} = this.props;
+		let isValid = this.state.isValid;
+
+		if(this.props.handleData) {
+			handleData(id, value, isValid);
+		}
 	}
 	
 	checkRules(e) {
@@ -107,6 +160,8 @@ class TextInput extends Component {
 
 			this.setState({isValid: result});
 		}
+
+		this.bindData(e.target.value);
 	}
 
 	checkCondition(condition) {
@@ -126,6 +181,7 @@ class TextInput extends Component {
 		let {label} = this.props;
 		let {id} = this.props;
 		let {placeholder} = this.props;
+		let {binding} = this.props;
 		let type = this.props.type != undefined ? this.props.type: "text";
 		let condition = this.props.condition;
 
@@ -142,7 +198,7 @@ class TextInput extends Component {
 				<p className={"c-field " + (this.state.isValid === false ? "error": "")}>
 					<label className="c-field__label" htmlFor={id}> {label}</label>
 
-					<input type={type} name={id} id={id} onChange={this.checkRules} onBlur={this.checkRules} placeholder={placeholder} />
+					<input value={binding} type={type} name={id} id={id} onChange={this.checkRules} onBlur={this.checkRules} placeholder={placeholder} />
 					{message}
 				</p>
 			)
@@ -169,6 +225,8 @@ class SelectField extends Component {
 	)
 	
 	handleChange(e) {
+		this.props.binding = e.target.value;
+		
 		if(this.props.required === true) {
 			if(e.target.value == "") {
 				this.setState({isValid: false});
@@ -181,6 +239,7 @@ class SelectField extends Component {
 	render() {
 		let options = this.props.options;
 		let {label} = this.props;
+		let {binding} = this.props;
 		let id = this.props.label.toLowerCase();
 		let {defaultValue} = this.props;
 		let message;
@@ -212,6 +271,7 @@ class CheckboxGroup extends Component {
 
 	componentWillMount = () => {
 		this.selectedCheckboxes = new Set();
+		//this.props.binding = this.selectedCheckboxes;
 	}
 
 	toggleCheckbox = label => {
