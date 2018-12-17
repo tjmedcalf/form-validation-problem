@@ -1,25 +1,59 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
 import './App.css';
 
 class App extends Component {
-  /* renderField(type) {
-    return (
-      <Field></Field>
-    );
-  } */
-  
-  render() {
-    return (
-		<FormComponent></FormComponent>
-    );
-  }
+  	render() {
+		return (
+			<FormComponent />
+    	);
+  	}
+}
 
+class CheckboxGroup extends Component {
+	
+	
+	renderCheckboxes = fields => (
+		fields.map( field => {
+			return (<CheckboxInput label={field} />)
+		})
+	)
+	
+	render() {
+		let options = this.props.options;
 
+		return(
+			<ul class="e-ulist">
+				{this.renderCheckboxes(options)}
+			</ul>
+		)
+	}
 }
 
 class FormComponent extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {isFormValid: false}
+	}
+
+	renderSelectOptions = options => (
+		options.map( option => {
+			return (<SelectOption label={option} />)
+		})
+	)
+
 	render() {
+		const rules = {
+			email: {
+				regex: "",
+				messgae: "Please enter a valid email address - hint: must include @ and .",
+			}
+		};
+
+		const options = {
+			animals: ["Tiger", "Bear", "Snake", "Donkey"],
+			colours: ["Blue", "Green", "Red", "Black", "Brown"],
+		}
+
 		return(
 			<form method='post' action=''>
 				<h1>Fill out this awesome form</h1>
@@ -27,16 +61,17 @@ class FormComponent extends Component {
 				<fieldset>
 					<legend>Your details</legend>
 
-					<p>
-						<label class='label' for='email'>
+					<p class="c-field">
+						<label class='label c-field__label' for='email'>
 							Email
 						</label>
+
 						<input type='text' id='email' name='email' />
 					</p>
+
 					<p>
-						<label class='label' for='password'>
-							Password
-						</label>
+						<label class='label' for='password'>Password</label>
+
 						<input class='error' type='password' id='password' name='username' />
 					</p>
 				</fieldset>
@@ -48,62 +83,115 @@ class FormComponent extends Component {
 						<label class='label' for='colour'>
 							Colour
 						</label>
+
 						<select name='colour' id='colour'>
-							<option value=''>Choose colour</option>
-							<option value='blue'>Blue</option>
-							<option value='green'>Green</option>
-							<option value='red'>Red</option>
-							<option value='black'>Black</option>
-							<option value='brown'>Brown</option>
+							<option value="">Please select a colour</option>
+							{this.renderSelectOptions(options.colours)}
 						</select>
 					</p>
-
-					<p>
+					
+					<div>
 						<span class="label">
 							Animal
 						</span>
+						
+						<CheckboxGroup options={options.animals} />
+					</div>
 
-						<input type='checkbox' name='animal' value='bear' id='bear' />
-						<label for='bear'>
-							Bear
-						</label>
+					
 
-						<input type='checkbox' name='animal' value='tiger' id='tiger' />
-						<label for='tiger'>
-							Tiger
-						</label>
-
-						<input type='checkbox' name='animal' value='snake' id='snake' />
-						<label for='snake'>
-							Snake
-						</label>
-
-						<input type='checkbox' name='animal' value='donkey' id='donkey' />
-						<label for='donkey'>
-							Donkey
-						</label>
-					</p>
-
-					<p>
-						<label class='label' for='tiger_type'>
-							Type of tiger
-						</label>
-						<input type='text' name='tiger_type' id='tiger_type' />
-					</p>
+					<TextInput condition="" label="Type of tiger" id="tiger_type" />
 				</fieldset>
 
-				<fieldset>
-					<p>
-						<input type='submit' value='Create account' />
-					</p>
-				</fieldset>
+				<input type='submit' value='Create account' />
 			</form>
 		)
 	}
 }
 
-class TextInput extends FormComponent {
+class TextInput extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {isValid: true};
+	}
+	
+	checkRule() {
+		let result = false;
 
+		return result;
+	}
+	checkCondition(condition) {
+		let result = false;
+
+		return result;
+	}
+	
+	render() {
+		let isValid = this.state.isValid;
+		let message;
+		let {label} = this.props;
+		let {id} = this.props;
+		let type = this.props.type != undefined ? this.props.type: "text";
+		let condition = this.props.condition;
+
+		if(!isValid) {
+			message = <Message />
+		}
+
+		if( this.checkCondition(condition) ) {
+			return(
+				<div class="c-field">
+					<label className="c-field label" htmlFor={label}> </label>
+					<input type={type} name={id} id={id} />
+					{message}
+				</div>
+			)
+		} else {
+			return null
+		}
+	}
+}
+
+class CheckboxInput extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {selected: null}
+	}
+
+	toggleSelected() {
+		
+	}
+	
+	render() {
+		let {label} = this.props;
+		let inputId = label.toLowerCase();
+		
+		return(
+			<li class="e-ulist__item">
+				<input type='checkbox' name='animal' value={inputId} id={inputId} onChange={this.toggleSelected} />
+				<label for='donkey'>
+					{label}
+				</label>
+			</li>
+		)
+	}
+}
+
+class SelectOption extends Component {
+	render() {
+		let label = this.props.label;
+		let inputId = label.toLowerCase();
+		
+		return(
+			<option value={inputId}>{label}</option>
+		)
+	}
+}
+
+class Message extends Component {
+	render() {
+		return <span>This field is required</span>
+	}
 }
 
 export default App;
