@@ -1,4 +1,8 @@
 import React, { Component } from 'react';
+import TextInput from './components/TextComponent';
+import SelectField from './components/SelectComponent';
+import CheckboxGroup from './components/CheckboxGroup';
+
 import './App.css';
 
 class App extends Component {
@@ -15,18 +19,36 @@ class FormComponent extends Component {
 		this.state = {isFormValid: false, formData: {}};
 		
 		this.handleSubmit = this.handleSubmit.bind(this);
-		this.bindTo = this.bindTo.bind(this);
+		this.bindEl = this.bindEl.bind(this);
+		this.bindArr = this.bindArr.bind(this);
+	}
+
+	triggerEvent = input => {
+		input.focus();
+		input.blur();
 	}
 
 	handleSubmit(e) {
 		e.preventDefault();
 		let formData = this.state.formData;
+		console.log(formData);
 		
 		//Validate all fields.
 		if(Object.keys(formData).length > 0) {
 			let test = true;
 			
 			Object.keys(formData).map(field => {
+				//trigger event on element;
+				if(formData[field].el) {
+					if(formData[field].el.focus == undefined) {
+						formData[field].el.map(input => {
+							this.triggerEvent( input );
+						});
+					} else {
+						this.triggerEvent( formData[field].el );
+					}
+				}
+				
 				if(!field.isValid) {
 					test = false;
 				}
@@ -37,24 +59,70 @@ class FormComponent extends Component {
 			this.setState({isFormValid: false});
 		}
 
-		console.log("formValid?", this.state.isFormValid);
-
 		if(this.state.isFormValid) {
-			//Submit form..
-		} else {
-			//Show errors..
+				
 		}
 	}
 
-	//Method to bind data from children Components
-	bindTo(fieldId, value, isValid) {
+	//Methods to bind data from children Components
+	bindEl(fieldId, data, isValid = "", remove = false) {
 		let formData = this.state.formData;
-
-		formData[fieldId] = {
-			value: value,
-			valid: isValid,
+		let freshData;
+		
+		//Create initial instance of formData
+		if(formData[fieldId] == undefined) {
+			formData[fieldId] = {};
 		}
 
+		//process the data - first time it has a reference element attached;
+		//subsequent updates are data-binding input value only;
+		if(data.focus != undefined) {
+			freshData = {
+				value: data.value,
+				valid: isValid,
+				el: data
+			}
+		} else {
+			freshData = {
+				value: data,
+				valid: isValid,
+			}
+		}
+
+		if(!remove) {
+			//Merge new input data with initial instance;
+			Object.assign(formData[fieldId], freshData);	
+		} else {
+			delete formData[fieldId];
+		}
+		
+		this.setState({formData});
+	}
+	//For fields with multiple choice
+	bindArr(fieldId, data, isValid = "") {
+		let formData = this.state.formData;
+		let freshData;
+		
+		//Create initial instance of formData
+		if(formData[fieldId] == undefined) {
+			formData[fieldId] = {};
+		}
+
+		if(data.el != undefined) {
+			freshData = {
+				value: data.value,
+				valid: isValid,
+				el: data.el
+			}
+		} else {
+			freshData = {
+				value: data.value,
+				valid: isValid,
+			}
+		}
+
+		//Merge new input data with initial instance;
+		Object.assign(formData[fieldId], freshData);
 		this.setState({formData});
 	}
 
@@ -74,6 +142,14 @@ class FormComponent extends Component {
 			},
 			typeOfTiger: {
 				required: true,
+				condition: () => {
+					if(this.state.formData.Animals) {
+						const result = (this.state.formData.Animals.value.indexOf("Tiger") > -1);
+						return result;
+					} else {
+						return false;
+					}
+				}
 			}
 		};
 
@@ -89,305 +165,39 @@ class FormComponent extends Component {
 				<fieldset>
 					<legend>Your details</legend>
 
-					<TextInput handleData={this.bindTo} 
+					<TextInput handleData={this.bindEl} 
 							   rule={rules.email} 
 							   label="Email" id="email" type="email" placeholder="john.doe@example.com" />
 							   
-					<TextInput rule={rules.password} label="Password" id="password" type="password" placeholder="Minmum 8 characters" />
+					<TextInput handleData={this.bindEl} 
+							   rule={rules.password} 
+							   label="Password" id="password" type="password" placeholder="Minimum 8 characters" />
 				</fieldset>
 
 				<fieldset>
 					<legend>Your animal</legend>
 
-					<SelectField binding={this.state.formData.password} defaultValue="Please select a colour" 
+					<SelectField defaultValue="Please select a colour" 
+								 handleData={this.bindEl}
 								 label="Colour" 
 								 options={options.colours}
 								 required={true} />
 
 					<CheckboxGroup label="Animals" 
-								   binding={this.state.formData.animals}
+								   handleData={this.bindArr} 
 								   options={options.animals}
 								   rule={rules.animals} />
 
 					<TextInput label="Type of tiger" 
 							   id="tiger_type" 
-							   binding={this.state.formData.typeOfTiger}
+							   placeholder="This field is required"
+							   handleData={this.bindEl} 
+							   condition={ rules.typeOfTiger.condition }
 							   rule={rules.typeOfTiger} />
 				</fieldset>
 
 				<input type='submit' value='Create account' />
 			</form>
-		)
-	}
-}
-
-class TextInput extends Component {
-	constructor() {
-		super();
-		this.state = {isValid: ""}
-		this.checkRules = this.checkRules.bind(this);
-	}
-
-	//Method to pass data from Child to Parent
-	bindData = value => {
-		const {handleData} = this.props;
-		const {id} = this.props;
-		let isValid = this.state.isValid;
-
-		if(this.props.handleData) {
-			handleData(id, value, isValid);
-		}
-	}
-	
-	checkRules(e) {
-		let result = false;
-		let {rule} = this.props;
-		
-		if(rule) {
-			if(rule.message) {
-				this.setState({useCustomMessage: true});
-			}
-
-			if(rule.regex) {
-				result = rule.regex.test( String(e.target.value).toLowerCase() );
-			}
-			if(rule.minLength) {
-				result = (e.target.value.length >= rule.minLength);
-			}
-			if(rule.required) {
-				result = e.target.value.length > 0;
-			}
-
-			this.setState({isValid: result});
-		}
-
-		this.bindData(e.target.value);
-	}
-
-	checkCondition(condition) {
-		let result = false;
-
-		if(condition == undefined) {
-			result = true;
-		} else {
-			result = condition;
-		}
-
-		return result;
-	}
-	
-	render() {
-		let message;
-		let {label} = this.props;
-		let {id} = this.props;
-		let {placeholder} = this.props;
-		let {binding} = this.props;
-		let type = this.props.type != undefined ? this.props.type: "text";
-		let condition = this.props.condition;
-
-		if(this.state.isValid === false) {
-			if(this.state.useCustomMessage) {
-				message = <Message custom={this.props.rule.message} />
-			} else {
-				message = <Message />
-			}
-		}
-		
-		if( this.checkCondition(condition) ) {
-			return(
-				<p className={"c-field " + (this.state.isValid === false ? "error": "")}>
-					<label className="c-field__label" htmlFor={id}> {label}</label>
-
-					<input value={binding} type={type} name={id} id={id} onChange={this.checkRules} onBlur={this.checkRules} placeholder={placeholder} />
-					{message}
-				</p>
-			)
-		} else {
-			return null
-		}
-	}
-}
-
-class SelectField extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {isValid: ""}
-		this.handleChange = this.handleChange.bind(this);
-	}
-	
-	renderSelectOptions = options => (
-		options.map( option => {
-			let label = option;
-			let inputId = option.toLowerCase();
-
-			return (<option value={inputId}>{label}</option>)
-		})
-	)
-	
-	handleChange(e) {
-		this.props.binding = e.target.value;
-		
-		if(this.props.required === true) {
-			if(e.target.value == "") {
-				this.setState({isValid: false});
-			} else {
-				this.setState({isValid: true});
-			}
-		}
-	}
-
-	render() {
-		let options = this.props.options;
-		let {label} = this.props;
-		let {binding} = this.props;
-		let id = this.props.label.toLowerCase();
-		let {defaultValue} = this.props;
-		let message;
-
-		if(this.state.isValid === false) {
-			message = <Message />;
-		}
-		
-		return(
-			<p className="c-field">
-				<label className="c-field__label" htmlFor={id}>{label}</label>
-
-				<select name={id} id={id} onChange={this.handleChange}>
-					<option value="">{defaultValue}</option>
-					{ this.renderSelectOptions(options) }
-				</select>
-
-				{message}
-			</p>
-		)
-	}
-}
-
-class CheckboxGroup extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {isValid: ""}
-	}
-
-	componentWillMount = () => {
-		this.selectedCheckboxes = new Set();
-		//this.props.binding = this.selectedCheckboxes;
-	}
-
-	toggleCheckbox = label => {
-		if (this.selectedCheckboxes.has(label)) {
-			this.selectedCheckboxes.delete(label);
-		} else {
-			this.selectedCheckboxes.add(label);
-		}
-
-		//Validation
-		if(this.props.rule) {
-			this.checkRule()
-		}
-	}
-
-	checkRule = () => {
-		let result = true;
-		let {rule} = this.props;
-
-		if(rule.min != undefined) {
-			if(rule.message) {
-				this.setState({useCustomMessage: true});
-			}
-
-			if(this.selectedCheckboxes.size >= rule.min) {
-				result = true;
-			} else if(this.state.isValid !== "") {
-				result = false;
-			}
-		}
-		
-		this.setState({isValid: result});
-	}
-	
-	renderCheckboxes = fields => (
-		fields.map( field => {
-			return (<CheckboxInput handleCheckboxChange={this.toggleCheckbox} label={field} />)
-		})
-	)
-	
-	render() {
-		let options = this.props.options;
-		let {label} = this.props;
-		let message;
-
-		if(this.state.isValid === false) {
-			if(this.state.useCustomMessage) {
-				message = <Message custom={this.props.rule.message} />
-			} else {
-				message = <Message />
-			}
-		}
-
-		return(
-			<div className="c-field c-field--checkboxes">
-				<span className="c-field__label">{label}</span>
-
-				<ul className="e-ulist">
-					{this.renderCheckboxes(options)}
-				</ul>
-
-				{message}
-			</div>
-		)
-	}
-}
-
-class CheckboxInput extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {isChecked: false}
-	}
-
-	toggleSelected = () => {
-		let {label, handleCheckboxChange} = this.props;
-		
-		this.setState(({ isChecked }) => (
-			{
-			  isChecked: !isChecked,
-			}
-		));
-
-		handleCheckboxChange(label);
-	}
-	
-	render() {
-		let {label} = this.props;
-		let inputId = label.toLowerCase();
-		let isChecked = this.state.isChecked;
-		
-		return(
-			<li className="e-ulist__item">
-				<div className="c-checkbox">
-					<input type='checkbox' name='animal'
-					 	   checked={isChecked}
-						   value={inputId} 
-						   id={inputId} 
-						   onChange={this.toggleSelected} />
-
-					<label className="c-checkbox__label" htmlFor={inputId}>
-						{label}
-					</label>
-				</div>
-			</li>
-		)
-	}
-}
-
-class Message extends Component {
-	render() {
-		let customMessage = this.props.custom;
-		
-		return (
-			<small className="c-field__error">
-				{(!customMessage ? "This field is required": customMessage)}
-			</small>
 		)
 	}
 }

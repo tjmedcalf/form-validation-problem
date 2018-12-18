@@ -135,11 +135,13 @@ legend {
   </p>
 */
 .error > input,
-.error > label {
+.error > label,
+.error > .c-field__label {
   color: red;
 }
 
-.error > input {
+.error > input,
+.error > select {
   border-color: red;
 }
 
