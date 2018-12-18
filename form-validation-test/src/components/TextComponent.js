@@ -14,7 +14,7 @@ class TextInput extends Component {
 			this.bindData(this.inputElement, true);
 		}
 	}
-	
+
 	componentDidUpdate = (prevProps) => {
 		//Add blank field to global formData
 		if(typeof this.props.condition === "function") {
@@ -39,7 +39,7 @@ class TextInput extends Component {
 		if(this.props.handleData) {
 			if(sendElement) {
 				handleData(id, element, isValid);
-				this.setState({elementLoaded: true})
+				this.setState({elementLoaded: true});
 			} else {
 				handleData(id, element.value, isValid);
 			}

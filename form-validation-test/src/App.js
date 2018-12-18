@@ -6,9 +6,30 @@ import CheckboxGroup from './components/CheckboxGroup';
 import './App.css';
 
 class App extends Component {
-  	render() {
+	constructor() {
+		super();
+		this.state = {showSummary: false};
+	}
+
+	successManager = results => {
+		this.setState({results: results}, ()=> {
+			this.setState({showSummary: true});
+		});
+	}
+	
+	render() {
+		let page;
+
+		if(!this.state.showSummary) {
+			page = <FormComponent success={this.successManager} />
+		} else {
+			page = <Summary result={this.state.results} />
+		}
+		
 		return (
-			<FormComponent />
+			<div>
+				{page}
+			</div>
     	);
   	}
 }
@@ -16,7 +37,7 @@ class App extends Component {
 class FormComponent extends Component {
 	constructor(props) {
 		super(props);
-		this.state = {isFormValid: false, formData: {}};
+		this.state = {isFormValid: false, formData: {}, showSummary: false};
 		
 		this.handleSubmit = this.handleSubmit.bind(this);
 		this.bindEl = this.bindEl.bind(this);
@@ -28,10 +49,9 @@ class FormComponent extends Component {
 		input.blur();
 	}
 
-	handleSubmit(e) {
-		e.preventDefault();
+	handleSubmit = evt => {
+		evt.preventDefault();
 		let formData = this.state.formData;
-		console.log(formData);
 		
 		//Validate all fields.
 		if(Object.keys(formData).length > 0) {
@@ -49,19 +69,19 @@ class FormComponent extends Component {
 					}
 				}
 				
-				if(!field.isValid) {
+				if(!formData[field].valid) {
 					test = false;
 				}
 			});
 
-			this.setState({isFormValid: test});
+			this.setState({isFormValid: test}, ()=> {
+				if(this.state.isFormValid) {
+					this.props.success(this.state.formData)
+				}
+			});
 		} else {
 			this.setState({isFormValid: false});
-		}
-
-		if(this.state.isFormValid) {
-				
-		}
+		}		
 	}
 
 	//Methods to bind data from children Components
@@ -198,6 +218,32 @@ class FormComponent extends Component {
 
 				<input type='submit' value='Create account' />
 			</form>
+		)
+	}
+}
+
+class Summary extends Component {
+	renderResults = results => (
+		Object.keys(results).map(field => {
+			return (
+				<li>
+					{field}: {results[field].value}
+				</li>
+			)
+		})
+	)
+	
+	render() {
+		const {result} = this.props;
+		
+		return (
+			<div>
+				<h1>Congrats! Here are your results</h1>
+				
+				<ul>
+					{this.renderResults(result)}
+				</ul>
+			</div>
 		)
 	}
 }

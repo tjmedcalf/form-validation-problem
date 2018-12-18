@@ -55,12 +55,17 @@ class CheckboxGroup extends Component {
 
 			if(this.selectedCheckboxes.size < rule.min) {
 				result = false;
-			} else if(this.state.isValid !== "") {
-				result = false;
-			}
-		}
-		
-		this.setState({isValid: result});
+			} else {
+                result = true;
+            }
+        }
+        
+        this.setState({isValid: result}, ()=> {
+            let fieldData = {
+                value:  Array.from(this.selectedCheckboxes)
+            }
+            this.props.handleData(this.props.label, fieldData, this.state.isValid);
+        });
 	}
 
 	compileItem = (input) => {
